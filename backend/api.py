@@ -13,22 +13,21 @@ from starlette.middleware.cors import CORSMiddleware
 import threading
 import uvicorn
 
-logger = logging.getLogger('uvicorn.error')
-logging.basicConfig(level=logging.DEBUG)
-
 try:
     BW_USERNAME = os.environ.get("BW_USERNAME")
     BW_PASSWORD = os.environ.get("BW_PASSWORD")
     IN_APP_CALLING_NUMBER = os.environ.get("BW_FROM_NUMBER")
+    LOG_LEVEL = os.environ.get("LOGGING_LEVEL", "INFO")
 except KeyError as e:
-    logger.error(f"Missing environment variable: {e}. Did you set up your .env file?")
+    print(f"Missing environment variable: {e}. Did you set up your .env file?")
     exit(1)
 
-connected_clients = []
+logger = logging.getLogger('uvicorn.error')
+logging.basicConfig(level=LOG_LEVEL)
 
 app = FastAPI()
 
-# CORS Middleware for our Frontend
+# CORS Middleware for the Frontend
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -39,7 +38,15 @@ app.add_middleware(
 
 redis_client = redis.Redis(host='redis', port=6379, decode_responses=True)
 
-async def handle_message(message):
+connected_clients = []
+
+async def handle_message(message) -> None:
+    """
+    Handle incoming message from Redis
+
+    :param message: dict
+    :return: None
+    """
     logger.debug(f"Redis message received: {message['data']}")
     for client in connected_clients:
         try:
@@ -48,10 +55,20 @@ async def handle_message(message):
         except Exception as e:
             logger.error(f"Error sending message: {e}")
 
-def redis_listener():
+
+def redis_listener() -> None:
+    """
+    Initialize the listener for incoming messages from Redis using PubSub
+
+    :return: None
+    """
     logger.debug("Starting Redis listener")
     pubsub = redis_client.pubsub()
-    pubsub.subscribe("calls")
+    try:
+        pubsub.subscribe("calls")
+    except Exception as e:
+        logger.error(f"Error subscribing to Redis channel: {e} Is the redis server running?")
+        exit(1)
 
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
@@ -60,9 +77,18 @@ def redis_listener():
         if message['type'] == 'message':
             loop.run_until_complete(handle_message(message))
 
-def start_redis_listener():
+
+def start_redis_listener() -> None:
+    """
+    Start the Redis listener in a separate thread
+
+    :return: None
+    """
     listener_thread = threading.Thread(target=redis_listener, daemon=True)
     listener_thread.start()
+
+
+start_redis_listener()
 
 
 @app.get("/health", status_code=204)
@@ -73,11 +99,12 @@ def health_check() -> None:
     """
     return
 
+
 @app.get(path="/bandwidth/authorization/token", status_code=200)
 def get_bandwidth_token() -> Response:
     """
     Get Bandwidth JWT from the Oauth Endpoint
-    :return: str
+    :return: FastAPI Response
     """
     logger.info("Fetching Bandwidth Token")
     bandwidth_token_url = "https://id.bandwidth.com/api/v1/oauth2/token"
@@ -95,9 +122,17 @@ def get_bandwidth_token() -> Response:
 
 
 @app.websocket("/bandwidth/notifications/ws")
-async def websocket_endpoint(websocket: WebSocket):
+async def websocket_endpoint(websocket: WebSocket) -> None:
+    """
+    WebSocket endpoint for notifications
+
+    :param websocket: WebSocket to connect
+    :return: None
+    """
     await websocket.accept()
+    logger.info("WebSocket connected")
     connected_clients.append(websocket)
+    logger.debug(f"Connected clients: {len(connected_clients)}")
 
     try:
         while True:
@@ -111,27 +146,33 @@ async def websocket_endpoint(websocket: WebSocket):
         await websocket.close()
 
 
-@app.post("/bandwidth/notifications/notify")
-async def notify_user(message: dict):
-    await redis_client.publish("incoming-calls", message)
-    return {"status": "message sent"}
-
-
-@app.post("/bandwidth/webhooks/voice/disconnect")
+@app.post("/bandwidth/webhooks/voice/disconnect", status_code=204)
 def handle_disconnect(callback: DisconnectCallback):
+    """
+    Handle disconnect callback from Bandwidth. Returns a 204.
+
+    :param callback: The DisconnectCallback object
+    :return: None
+    """
     logger.info(f"Received disconnect for call {callback.call_id}")
     logger.debug(callback)
     return
 
 
 @app.post("/bandwidth/webhooks/voice/initiate")
-def handle_inbound_call(callback: InitiateCallback):
+def handle_inbound_call(callback: InitiateCallback) -> Response:
+    """
+    The main inbound callback handler. This handles calls from 3rd party customers and our agents. It is the bulk of the logic for the voice application.
+    If a call comes in from our agent, we bridge the call to the customer. If a call comes in from a customer, we notify the frontend and play a message to the customer.
+
+    :param callback: The InitiateCallback object
+    :return: Returns a BXML response utilizing the FastAPI Response Model
+    """
     logger.info(f"Received inbound call from {callback.var_from}")
     logger.debug(callback)
 
     if callback.var_from == IN_APP_CALLING_NUMBER:
         logger.info("Received call from our agent to bridge")
-        # Call from our agent - we need to bridge this to an inbound customer call
         customer_call_id = redis_client.get("inbound_call_id")
         bridge = Bridge(target_call=customer_call_id)
         response = BxmlResponse([bridge])
@@ -162,7 +203,13 @@ def handle_inbound_call(callback: InitiateCallback):
 
 
 @app.post("/bandwidth/webhooks/voice/redirect")
-def handle_inbound_call(callback: RedirectCallback):
+def handle_redirected_call(callback: RedirectCallback) -> Response:
+    """
+    The redirect callback handler. This is where an inbound customer is "parked" while waiting for an agent to accept the call.
+
+    :param callback: The RedirectCallback object
+    :return: Returns a BXML response utilizing the FastAPI Response Model
+    """
     logger.info(f"Received redirected call from {callback.var_from}")
     logger.debug(callback)
     ring = Ring(
@@ -175,7 +222,13 @@ def handle_inbound_call(callback: RedirectCallback):
     return Response(status_code=200, content=response.to_bxml(), media_type="application/xml")
 
 
-def start_server(port: int):
+def start_server(port: int) -> None:
+    """
+    Start the FastAPI server
+
+    :param port: The port to run the server on
+    :return: None
+    """
     uvicorn.run(
         "api:app",
         host="0.0.0.0",
@@ -186,5 +239,4 @@ def start_server(port: int):
 
 
 if __name__ == "__main__":
-    start_redis_listener()
     start_server(8080)
