@@ -17,35 +17,53 @@ async function refreshToken() {
   try {
     // Sending a POST request
     const response = await fetch(url, {
-      method: 'POST',
+      method: 'GET',
       headers: {
         'Content-Type': 'application/json', // Set Content-Type as necessary
       },
-      // If you need to send a body with the request, you can include it here
-      // body: JSON.stringify({ /* Your request payload here, if needed */ })
     });
 
     // Check if the response is OK (status in the range 200-299)
+    console.log("Resonse: ", response)
     if (!response.ok) {
       throw new Error(`HTTP error! Status: ${response.status}`);
     }
 
     // Get the response as text
-    const data = await response.text(); // Assuming the response is a string
-    return data; // Return the received string
+    const token = await response.text();
+    return token;
   } catch (error) {
     console.error('Error fetching auth token:', error);
-    throw error; // Rethrow the error if needed for handling
+    throw error;
   }
+}
+
+function isJwtExpired(jwt) {
+    const jwtParts = jwt.split('.');
+    if (jwtParts.length !== 3) {
+        return true;
+    }
+
+    try {
+        const payload = JSON.parse(atob(jwtParts[1]));
+        if (payload.exp) {
+        const expirationTime = payload.exp * 1000; // Convert to milliseconds
+        const currentTime = Date.now();
+        return expirationTime < currentTime;
+        }
+    } catch (error) {
+        console.error('Error parsing JWT:', error);
+        return true;
+    }
+
+    return true;
 }
 
 export default function DialPad() {
   console.log("Dialpad rendering...");
   const userId = "+19194248243";
-  const authToken = "eyJraWQiOiJzZ25tLTE3OWU3Y2NkLTM0MzQtNGY5Yi05MjhlLWNkN2Y1ODEyNjNkNyIsImFsZyI6IlJTMjU2In0.eyJzdWIiOiJhcmljZS1hcGkiLCJhdWQiOiJiYW5kd2lkdGguY29tIiwic2NwIjpbXSwiYWNjZXNzX3R5cGUiOiJBUEkiLCJyb2xlcyI6WyJzcGVjaWFsaXplZCBjdXN0b21lciBleHRlcm5hbCB0bnMiLCJPcmRlcmluZyIsIlBvcnRpbmciLCJCaWxsaW5nIFJlcG9ydHMiLCJDb25maWd1cmF0aW9uIiwiQW5hbHl0aWNzIiwidGVzdFJvbGUiLCJUTiBMb29rdXAiLCJFOTExIE1hbmFnZW1lbnQiLCJtZXNzYWdpbmdfaW5zaWdodHMiLCJJbiBBcHAgQ2FsbGluZyBBY3RpdmF0aW9uIE1hbmFuZ2VtZW50IiwiTGluZSBGZWF0dXJlcyIsIkxzck1hbmFnZW1lbnQiLCJTSVAgQ3JlZGVudGlhbHMiLCJSZXBvcnRpbmciLCJudW1iZXJzX2luc2lnaHRzIiwidm9pY2VfaW5zaWdodHMiLCJjYW1wYWlnbl9tYW5hZ2VtZW50IiwiSFRUUCBBcHBsaWNhdGlvbiBNYW5hZ2VtZW50IiwiSHR0cFZvaWNlIiwiRGlzY29ubmVjdCJdLCJpc3MiOiJodHRwczovL2lkLmJhbmR3aWR0aC5jb20vYXBpL3YxIiwiYWNjdF9zY29wZSI6IkFjY291bnQiLCJhY2NvdW50cyI6WyI5OTAwNzc4Il0sImV4cCI6MTczODc5OTI3MiwiaWF0IjoxNzM4Nzk1NjcyLCJqdGkiOiJhTE1WSmp4aFZGTkNCNjJoYkxrbk1NIn0.poMxSDZNiR7Q_AkrycwVQ0ju0ptAsEDV1AHRI4pWQYA3Uft2nZXVjjNiYJhYwXJrUWjn-EsmdC58Be7t_gINfh0qwhmklspvXtXIVuuReb22rBpuCnKNqepyAtAMM3gSVTz_PrCUpIchCXyjmBbLHmJP9Nx_oiKXA13voqkHi-yL_hXItbsSl0yBgdGtaVY-kEfpid3k1yzAkuV5GphUTsvD361zB38bfqe05vzTljsKkrQZbnatoD7BU6jAiNEThlqGoc6qNBOiz3fdl4byiT1veb88FVZ2jz2xvUJBRFnAIQvngh9hLyBu8ntSWzuzhUdY1r17Wgo3qLrymSplPw";
   const sourceNumber = userId;
   console.log('User ID:', userId);
-
   const { totalSeconds, seconds, minutes, hours, start, pause, reset } = useStopwatch({ autoStart: false });
 
   const [destNumber, setDestNumber] = useState('');
@@ -70,6 +88,19 @@ export default function DialPad() {
   const [userStatus, setUserStatus] = useState('Idle');
   const [backendWebSocket, setBackendWebSocket] = useState(null);
   const [isBackendWebSocketOpen, setIsBackendWebSocketOpen] = useState(false);
+  const [authToken, setAuthToken ] = useState('');
+
+  useEffect( () => {
+    console.log("refreshing token... (Outside check)")
+    const token = async () => {
+      // if token null or expired
+      if (!authToken || isJwtExpired(authToken)) {
+        console.log("refreshing token...")
+        setAuthToken(await refreshToken());
+      }
+    }
+    token();
+  }, []);
 
   useEffect(() => {
     const connectBackendWebSocket = () => {
@@ -92,7 +123,7 @@ export default function DialPad() {
           if (msg.type === 'call') {
             setIncomingPayload(msg.data);
             setIncomingCall(true);
-            // setCallState('Ringing');
+            setCallState('Ringing');
           }
         } catch (error) {
           console.error('Error parsing WebSocket message:', error);
@@ -159,7 +190,7 @@ export default function DialPad() {
     newPhone.setOAuthToken(authToken);
     newPhone.init();
     setPhone(newPhone);
-  }, []);
+  }, [authToken]);
 
   useEffect(() => {
     phone.setListeners({

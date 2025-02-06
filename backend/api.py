@@ -16,9 +16,15 @@ import uvicorn
 logger = logging.getLogger('uvicorn.error')
 logging.basicConfig(level=logging.DEBUG)
 
-BW_USERNAME = os.environ.get("BW_USERNAME")
-BW_PASSWORD = os.environ.get("BW_PASSWORD")
-IN_APP_CALLING_NUMBER = os.environ.get("BW_FROM_NUMBER")
+try:
+    BW_USERNAME = os.environ.get("BW_USERNAME")
+    BW_PASSWORD = os.environ.get("BW_PASSWORD")
+    IN_APP_CALLING_NUMBER = os.environ.get("BW_FROM_NUMBER")
+except KeyError as e:
+    logger.error(f"Missing environment variable: {e}. Did you set up your .env file?")
+    exit(1)
+
+connected_clients = []
 
 app = FastAPI()
 
@@ -32,8 +38,6 @@ app.add_middleware(
 )
 
 redis_client = redis.Redis(host='redis', port=6379, decode_responses=True)
-
-connected_clients = []
 
 async def handle_message(message):
     logger.debug(f"Redis message received: {message['data']}")
@@ -60,8 +64,6 @@ def start_redis_listener():
     listener_thread = threading.Thread(target=redis_listener, daemon=True)
     listener_thread.start()
 
-start_redis_listener()
-
 
 @app.get("/health", status_code=204)
 def health_check() -> None:
@@ -72,7 +74,7 @@ def health_check() -> None:
     return
 
 @app.get(path="/bandwidth/authorization/token", status_code=200)
-def get_bandwidth_token() -> str:
+def get_bandwidth_token() -> Response:
     """
     Get Bandwidth JWT from the Oauth Endpoint
     :return: str
@@ -86,7 +88,10 @@ def get_bandwidth_token() -> str:
         "grant_type": "client_credentials"
     }
     r = requests.post(bandwidth_token_url, auth=(BW_USERNAME, BW_PASSWORD), headers=headers, data=payload)
-    return r.json()["access_token"]
+    token = r.json()["access_token"]
+
+    # return token with quotes removed
+    return Response(content=token.replace('"', ""), headers={"Content-Type": "text/plain"})
 
 
 @app.websocket("/bandwidth/notifications/ws")
@@ -181,4 +186,5 @@ def start_server(port: int):
 
 
 if __name__ == "__main__":
+    start_redis_listener()
     start_server(8080)
