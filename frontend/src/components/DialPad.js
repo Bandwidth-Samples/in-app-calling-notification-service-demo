@@ -340,20 +340,22 @@ export default function DialPad() {
   }, [initiateCall]);
 
   const handleDigitClick = (value) => {
+    console.log("handleDigitClick");
     activeCall ? activeCall.sendDTMF(value) : setDestNumber((destNumber) => destNumber.concat(value));
   }
 
   const handlePhoneNumber = (e) => {
+    console.log("handlePhoneNumber");
     setDestNumber(e.target.value.replace(/\D/g, ''));
   };
 
   const handleBackspaceClick = () => {
+    console.log("handleBackspaceClick");
     setDestNumber((destNumber) => destNumber.slice(0, -1));
   };
 
   const handleAcceptClick = () => {
-    console.log("Incoming Payload: ")
-    console.log(incomingPayload)
+    console.log("handleAcceptClick");
     if (incomingPayload.fromNumber) {
       console.log("handleAcceptClick Number: %s", incomingPayload.fromNumber);
       setDestNumber(userId.replace('+', ''));
@@ -362,7 +364,7 @@ export default function DialPad() {
       setCallState("In-Call");
       setCallInitiate(true);
     } else {
-      console.error("Incoming payload does not contain 'fromNo'");
+      console.error("Incoming payload does not contain 'fromNumber'");
     }
   }
 
@@ -374,6 +376,7 @@ export default function DialPad() {
   }
 
   const handleDialClick = () => {
+    console.log("handleDialClick");
     if (phone.isInitialized()) {
       setCallState("Calling");
       setCallStatus('Calling');

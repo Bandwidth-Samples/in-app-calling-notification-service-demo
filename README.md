@@ -15,7 +15,9 @@
 
 # Description
 
-This sample app demonstrates using Bandwidth's In App Calling product to make outbound calls from a browser and receive inbound calls from a PSTN number.  The app uses the Bandwidth Voice API to create calls and the Bandwidth Messaging API to send and receive messages.
+This sample app demonstrates using Bandwidth's In App Calling product to make outbound calls from a browser and receive inbound calls from a PSTN number.  
+
+The app uses the Bandwidth Voice API to handle the call legs from the browser and customer, and bridge them together.
 
 The app is built using a React frontend and a python FastAPI backend, using Redis PubSub to broker messages between the 2 via websocket. 
 
@@ -49,17 +51,20 @@ To run the application, run the following command:
 make run-local
 ```
 
+After running - the frontend will be available on localhost:3000 and the backend will be available on localhost:3001.
+
 # Callback URLs
 
-For a detailed introduction, check out our [Voice Callbacks](https://dev.bandwidth.com/docs/voice/webhooks) page.
+For a detailed introduction, check out our [Voice Callbacks](https://dev.bandwidth.com/docs/voice/webhooks/) page.
 
 Below are the callback paths:
+
 * `/health` - A health check endpoint
 * `/bandwidth/authorization/token` - Generates a Bandwidth token for the frontend to use
 * `/bandwidth/notifications/ws` - Websocket endpoint for the frontend to receive notifications
 * `/bandwidth/webhooks/voice/initiate` - Endpoint that returns BXML when a call is received
 * `/bandwidth/webhooks/voice/redirect` - Endpoint that returns BXML to keep and inbound customer call parked
-* * `/bandwidth/webhooks/voice/disconnect` - Status endpoint for when a call is disconnected
+* `/bandwidth/webhooks/voice/disconnect` - Status endpoint for when a call is disconnected
 
 ## Ngrok
 
