@@ -11,33 +11,36 @@ import { BandwidthUA } from '@bandwidth/bw-webrtc-sdk';
 import { useStopwatch } from 'react-timer-hook';
 import { Button } from '@mui/material';
 
+/**
+ * Fetches a new JWT from the backend server
+ *
+ * @returns {Promise<string>}
+ */
 async function refreshToken() {
-  const url = 'http://localhost:3001/bandwidth/authorization/token';
+  const tokenUrl = 'http://localhost:3001/bandwidth/authorization/token';
 
   try {
-    // Sending a POST request
-    const response = await fetch(url, {
+    const response = await fetch(tokenUrl, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json', // Set Content-Type as necessary
-      },
     });
 
-    // Check if the response is OK (status in the range 200-299)
-    console.log("Resonse: ", response)
     if (!response.ok) {
       throw new Error(`HTTP error! Status: ${response.status}`);
     }
 
-    // Get the response as text
-    const token = await response.text();
-    return token;
+    return await response.text();
   } catch (error) {
     console.error('Error fetching auth token:', error);
     throw error;
   }
 }
 
+/**
+ * Checks if the authToken is expired
+ *
+ * @param jwt
+ * @returns {boolean}
+ */
 function isJwtExpired(jwt) {
     const jwtParts = jwt.split('.');
     if (jwtParts.length !== 3) {
@@ -61,9 +64,8 @@ function isJwtExpired(jwt) {
 
 export default function DialPad() {
   console.log("Dialpad rendering...");
-  const userId = "+19194248243";
-  const sourceNumber = userId;
-  console.log('User ID:', userId);
+  const userId = process.env.BW_FROM_NUMBER;
+
   const { totalSeconds, seconds, minutes, hours, start, pause, reset } = useStopwatch({ autoStart: false });
 
   const [destNumber, setDestNumber] = useState('');
@@ -90,10 +92,11 @@ export default function DialPad() {
   const [isBackendWebSocketOpen, setIsBackendWebSocketOpen] = useState(false);
   const [authToken, setAuthToken ] = useState('');
 
+  /**
+   * Refresh the JWT token if it is null or expired
+   */
   useEffect( () => {
-    console.log("refreshing token... (Outside check)")
     const token = async () => {
-      // if token null or expired
       if (!authToken || isJwtExpired(authToken)) {
         console.log("refreshing token...")
         setAuthToken(await refreshToken());
@@ -102,6 +105,11 @@ export default function DialPad() {
     token();
   }, []);
 
+  /**
+   * Connect to the backend WebSocket
+   *
+   * This websocket publishes messages to the frontend letting us know there is an inbound caller
+   */
   useEffect(() => {
     const connectBackendWebSocket = () => {
       const backendWebsocketUrl = 'ws://localhost:3001/bandwidth/notifications/ws';
@@ -186,7 +194,7 @@ export default function DialPad() {
       serverConfig.iceServers
     );
     newPhone.checkAvailableDevices();
-    newPhone.setAccount(`${sourceNumber}`, 'In-App Calling Sample', '');
+    newPhone.setAccount(`${userId}`, 'In-App Calling Sample', '');
     newPhone.setOAuthToken(authToken);
     newPhone.init();
     setPhone(newPhone);
