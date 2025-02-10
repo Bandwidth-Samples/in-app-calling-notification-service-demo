@@ -29,6 +29,8 @@ To create an application log into the [Bandwidth Dashboard](https://dashboard.ba
 
 For more information about API credentials see our [Account Credentials](https://dev.bandwidth.com/docs/account/credentials) page.
 
+When configuring your application, make sure to set the `Call-Initiated Callback URL` as `http://<your-ngrok-url>/bandwidth/webhooks/voice/initiate` and the `Call Status Callback URL` as `http://<your-ngrok-url>/bandwidth/webhooks/voice/disconnect`.
+
 # Environmental Variables
 
 The sample app uses the below environmental variables. The can be configured in the [`.env`](.env) file.
