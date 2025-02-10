@@ -17,7 +17,7 @@ services:
     depends_on:
       - redis
     env_file:
-      - .env.local
+      - .env
     links:
       - redis
   frontend:
@@ -32,7 +32,7 @@ services:
       - redis
       - backend
     env_file:
-      - .env.local
+      - .env
     links:
       - redis
       - backend
