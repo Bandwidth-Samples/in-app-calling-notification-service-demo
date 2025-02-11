@@ -7,6 +7,7 @@ from bandwidth.models import InitiateCallback, DisconnectCallback, RedirectCallb
 from bandwidth.models.bxml import Response as BxmlResponse
 from bandwidth.models.bxml import Bridge, SpeakSentence, Ring, Redirect
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Response
+import jwt
 import redis
 import requests
 from starlette.middleware.cors import CORSMiddleware
@@ -39,6 +40,47 @@ app.add_middleware(
 redis_client = redis.Redis(host='redis', port=6379, decode_responses=True)
 
 connected_clients = []
+
+bandwidth_auth_token = ""
+
+def fetch_bandwidth_token() -> str:
+    """
+    Fetch a new Bandwidth token from the Oauth Endpoint
+
+    :return: str
+    """
+    logger.info("Fetching new Bandwidth token")
+    bandwidth_token_url = "https://id.bandwidth.com/api/v1/oauth2/token"
+    headers = {
+        "Content-Type": "application/x-www-form-urlencoded",
+    }
+    payload = {
+        "grant_type": "client_credentials"
+    }
+    r = requests.post(bandwidth_token_url, auth=(BW_USERNAME, BW_PASSWORD), headers=headers, data=payload)
+    return r.json()["access_token"]
+
+def generate_jwt() -> str:
+    """
+    Generate a JWT for Bandwidth
+
+    :return: str
+    """
+    global bandwidth_auth_token
+
+    if not bandwidth_auth_token:
+        bandwidth_auth_token = fetch_bandwidth_token()
+
+    try:
+        jwt.decode(bandwidth_auth_token, options={"verify_signature": False})
+    except (jwt.ExpiredSignatureError, jwt.InvalidTokenError):
+        logger.error("JWT is invalid or has expired")
+        bandwidth_auth_token = fetch_bandwidth_token()
+    except Exception as e:
+        logger.error(f"Error decoding JWT: {e}")
+        bandwidth_auth_token = fetch_bandwidth_token()
+
+    return bandwidth_auth_token.replace('"', "")
 
 async def handle_message(message) -> None:
     """
@@ -90,7 +132,6 @@ def start_redis_listener() -> None:
 
 start_redis_listener()
 
-
 @app.get("/health", status_code=204)
 def health_check() -> None:
     """
@@ -106,19 +147,14 @@ def get_bandwidth_token() -> Response:
     Get Bandwidth JWT from the Oauth Endpoint
     :return: FastAPI Response
     """
-    logger.info("Fetching Bandwidth Token")
-    bandwidth_token_url = "https://id.bandwidth.com/api/v1/oauth2/token"
-    headers = {
-        "Content-Type": "application/x-www-form-urlencoded",
-    }
-    payload = {
-        "grant_type": "client_credentials"
-    }
-    r = requests.post(bandwidth_token_url, auth=(BW_USERNAME, BW_PASSWORD), headers=headers, data=payload)
-    token = r.json()["access_token"]
+    try:
+        token = generate_jwt()
+    except Exception as e:
+        logger.error(f"Error generating JWT: {e}")
+        return Response(status_code=500, content="Error generating JWT")
 
     # return token with quotes removed
-    return Response(content=token.replace('"', ""), headers={"Content-Type": "text/plain"})
+    return Response(content=generate_jwt(), headers={"Content-Type": "text/plain"})
 
 
 @app.websocket("/bandwidth/notifications/ws")

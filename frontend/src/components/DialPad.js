@@ -358,7 +358,7 @@ export default function DialPad() {
     console.log("handleAcceptClick");
     if (incomingPayload.fromNumber) {
       console.log("handleAcceptClick Number: %s", incomingPayload.fromNumber);
-      setDestNumber(userId.replace('+', ''));
+      setDestNumber(incomingPayload.fromNumber.replace('+', ''));
       setIncomingCall(false);
       setIncomingPayload({});
       setCallState("In-Call");
