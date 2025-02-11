@@ -16,7 +16,7 @@ import uvicorn
 try:
     BW_USERNAME = os.environ.get("BW_USERNAME")
     BW_PASSWORD = os.environ.get("BW_PASSWORD")
-    IN_APP_CALLING_NUMBER = os.environ.get("BW_FROM_NUMBER")
+    IN_APP_CALLING_NUMBER = os.environ.get("REACT_APP_BW_FROM_NUMBER")
     LOG_LEVEL = os.environ.get("LOGGING_LEVEL", "INFO")
 except KeyError as e:
     print(f"Missing environment variable: {e}. Did you set up your .env file?")

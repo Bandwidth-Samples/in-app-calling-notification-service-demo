@@ -64,7 +64,7 @@ function isJwtExpired(jwt) {
 
 export default function DialPad() {
   console.log("Dialpad rendering...");
-  const userId = process.env.BW_FROM_NUMBER;
+  const userId = process.env.REACT_APP_BW_FROM_NUMBER;
 
   const { totalSeconds, seconds, minutes, hours, start, pause, reset } = useStopwatch({ autoStart: false });
 
