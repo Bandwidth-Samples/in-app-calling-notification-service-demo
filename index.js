@@ -1,13 +1,14 @@
-const bodyparser = require('body-parser');
-const { handle } = require('./lambda');
 const express = require("express")
-var app = express()
-app.use(bodyparser.json())
+const { handle } = require('./lambda');
 
-app.get("/", function (request, response) {
+var port = process.env.LOCAL_PORT || 3000;
+
+var app = express()
+app.use(express.json())
+
+app.get("/health", function (request, response) {
     response.send("Hello World!")
 })
-
 
 app.post('/initiate', async (req, res) => {
     if (req != undefined) {
@@ -22,6 +23,6 @@ app.post('/initiate', async (req, res) => {
     }
 })
 
-app.listen(10000, function () {
-    console.log("Started application on port %d", 10000)
+app.listen(port, function () {
+    console.log("Started application on port %d", port)
 });
