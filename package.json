@@ -2,10 +2,10 @@
   "name": "notification-dispatcher",
   "version": "1.0.0",
   "description": "a webservice act as a notification manager for client",
-  "main": "app.js",
+  "main": "index.js",
   "scripts": {
     "test": "node",
-    "start": "node app.js"
+    "start": "node index.js"
   },
   "author": "Aman Singhal",
   "license": "ISC",
