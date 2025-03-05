@@ -1,5 +1,5 @@
 const express = require("express")
-const { handle } = require('./lambda');
+const { handle } = require('./initiate');
 
 var port = process.env.LOCAL_PORT || 3000;
 
