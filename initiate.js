@@ -94,7 +94,6 @@ async function initiate(body) {
 
 /**Response BXML for briding the call */
 function speakSentenceXMLBridge(secondCallId) {
-    //return `<?xml version="1.0" encoding="UTF-8"?><Response><Pause duration='5'/><SpeakSentence>Agent connected successfully</SpeakSentence><Bridge>${secondCallId}</Bridge></Response>`;
     const response = new bxml.Bxml.Response();
     response.addVerbs(new bxml.Bxml.Pause(5));
     response.addVerbs(new bxml.Bxml.SpeakSentence('Agent connected successfully'));
@@ -104,7 +103,6 @@ function speakSentenceXMLBridge(secondCallId) {
 
 /**Response BXML for iniating the call  */
 function speakSentenceXML() {
-    //return `<?xml version="1.0" encoding="UTF-8"?><Response><SpeakSentence>Please wait while we are connecting your call</SpeakSentence><Pause duration="60"/></Response>`;
     const response = new bxml.Bxml.Response();
     response.addVerbs(new bxml.Bxml.SpeakSentence(`Please wait while we are connecting your call`));
     response.addVerbs(new bxml.Bxml.Pause(60));
