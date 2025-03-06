@@ -13,7 +13,8 @@ app.get("/health", function (request, response) {
 app.post('/initiate', async (req, res) => {
     if (req != undefined) {
         var response = await handle(req);
-        if (response['statusCode'] == 200) {
+        if (response != undefined) {
+            res.type('application/xml');
             res.send(response);
         } else {
             res.status(404);
