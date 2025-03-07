@@ -2,6 +2,7 @@ const bodyparser = require('body-parser');
 const firebase = require('firebase-admin');
 const serviceAccount = require('./admin-service.json');
 const axios = require('axios');
+const bxml = require('bandwidth-sdk');
 firebase.initializeApp({ credential: firebase.credential.cert(serviceAccount) });
 
 /**Handler for lamda functions */
@@ -16,22 +17,9 @@ exports.handle = async (event, context, callback) => {
     try {
         var response = await initiate(body);
         console.log(response);
-        return getResponse(200, response);
+        return response;
     } catch (error) {
         console.error(error);
-        return getResponse(400, "Unable to intiate this request");
-    }
-}
-
-/**Response format for lambda functions */
-async function getResponse(statusCode, json) {
-    return {
-        "isBase64Encoded": false,
-        "statusCode": statusCode,
-        "body": json,
-        "headers": {
-            "Content-Type": "application/xml"
-        }
     }
 }
 
@@ -106,10 +94,17 @@ async function initiate(body) {
 
 /**Response BXML for briding the call */
 function speakSentenceXMLBridge(secondCallId) {
-    return `<?xml version="1.0" encoding="UTF-8"?><Response><Pause duration='5'/><SpeakSentence>Agent connected successfully</SpeakSentence><Bridge>${secondCallId}</Bridge></Response>`;
+    const response = new bxml.Bxml.Response();
+    response.addVerbs(new bxml.Bxml.Pause(5));
+    response.addVerbs(new bxml.Bxml.SpeakSentence('Agent connected successfully'));
+    response.addVerbs(new bxml.Bxml.Bridge(secondCallId));
+    return response.toBxml();
 }
 
 /**Response BXML for iniating the call  */
 function speakSentenceXML() {
-    return `<?xml version="1.0" encoding="UTF-8"?><Response><SpeakSentence>Please wait while we are connecting your call</SpeakSentence><Pause duration="60"/></Response>`;
+    const response = new bxml.Bxml.Response();
+    response.addVerbs(new bxml.Bxml.SpeakSentence(`Please wait while we are connecting your call`));
+    response.addVerbs(new bxml.Bxml.Pause(60));
+    return response.toBxml();
 }

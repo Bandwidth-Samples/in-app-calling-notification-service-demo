@@ -2,15 +2,16 @@
   "name": "notification-dispatcher",
   "version": "1.0.0",
   "description": "a webservice act as a notification manager for client",
-  "main": "app.js",
+  "main": "index.js",
   "scripts": {
     "test": "node",
-    "start": "node app.js"
+    "start": "node index.js"
   },
   "author": "Aman Singhal",
   "license": "ISC",
   "dependencies": {
     "axios": "^1.7.3",
+    "bandwidth-sdk": "^4.1.0",
     "body-parser": "^1.20.2",
     "express": "^4.19.2",
     "firebase": "^10.12.3",
