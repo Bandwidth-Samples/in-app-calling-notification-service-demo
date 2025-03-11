@@ -44,7 +44,9 @@ Below are the callback paths:
 
 # Firebase Configuration
 
-This sample application utilizes firebase to assist in sending notifications to the client. Click here for more information on the [Firebase Admin SDK](https://firebase.google.com/docs/admin/setup#initialize_the_sdk_in_non-google_environments).
+This sample application utilizes firebase to assist in sending notifications to the client. 
+* Obtain it from [Firebase Setup Guide](https://firebase.google.com/docs/admin/setup#initialize_the_sdk_in_non-google_environments) to use it at [index.js:line:8](https://github.com/Bandwidth-Samples/in-app-calling-notification-service-demo/blob/02cc4ac4c895e4f256c293004bc8344e195f3d3b/initiate.js#L8)
+* Create a new web project and follow the straightforward instructions provided in the link [here](https://firebase.google.com/docs/admin/setup#initialize_the_sdk_in_non-google_environments).
 
 # Running the Application
 

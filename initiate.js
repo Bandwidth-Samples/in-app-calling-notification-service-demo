@@ -1,7 +1,11 @@
 const bodyparser = require('body-parser');
 const firebase = require('firebase-admin');
-const serviceAccount = require('./admin-service.json');
-const axios = require('axios');
+/**
+ * Firebase authorization json: 
+ * Obtain it from https://firebase.google.com/docs/admin/setup#initialize_the_sdk_in_non-google_environments
+ * by create a new web project and follow the straightforward instructions provided in the link above.
+ */
+const serviceAccount = require('./firebase-admin-auth.json');
 const bxml = require('bandwidth-sdk');
 firebase.initializeApp({ credential: firebase.credential.cert(serviceAccount) });
 
@@ -9,7 +13,7 @@ firebase.initializeApp({ credential: firebase.credential.cert(serviceAccount) })
 exports.handle = async (event, context, callback) => {
     console.log(JSON.stringify(event.body));
     if (typeof event.body === 'string') {
-        console.log("Body is string:", event.body);
+        console.log(`Body is string: ${event.body}`);
         var body = JSON.parse(event.body);
     } else {
         var body = event.body;
@@ -59,8 +63,8 @@ async function initiate(body) {
 
             const message = {
                 notification: {
-                    title: ("Call from: " + sampleData['fromNo']),
-                    body: ("You are getting a call from: " + sampleData['fromNo'] + " please go back to the tab and answer it")
+                    title: `Call from: ${sampleData['fromNo']}`,
+                    body: `You are getting a call from: ${sampleData['fromNo']} please go back to the tab and answer it`
                 },
                 data: sampleData,
                 tokens: [toUserToken],
@@ -68,10 +72,10 @@ async function initiate(body) {
 
             firebase.messaging().sendEachForMulticast(message)
                 .then(response => {
-                    console.log("FCM Sent: ", JSON.stringify(response));
+                    console.log(`FCM Sent: ${JSON.stringify(response)}`);
                 })
                 .catch(error => {
-                    console.error("FCM Failed: ", error);
+                    console.error(`FCM Failed: ${error}`);
                 });
 
             var docRef = db.collection("agents").doc(body.to);
