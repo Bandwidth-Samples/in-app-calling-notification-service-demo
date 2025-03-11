@@ -10,7 +10,7 @@
   "author": "Aman Singhal",
   "license": "ISC",
   "dependencies": {
-    "axios": "^1.7.3",
+    "axios": "^1.8.2",
     "bandwidth-sdk": "^4.1.0",
     "body-parser": "^1.20.2",
     "express": "^4.21.0",
