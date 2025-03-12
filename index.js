@@ -3,11 +3,11 @@ const { handle } = require('./initiate');
 
 var port = process.env.LOCAL_PORT || 3000;
 
-var app = express()
-app.use(express.json())
+var app = express();
+app.use(express.json());
 
 app.get("/health", function (request, response) {
-    response.send("Hello World!")
+    response.status(204).send();
 })
 
 app.post('/initiate', async (req, res) => {
@@ -25,5 +25,5 @@ app.post('/initiate', async (req, res) => {
 })
 
 app.listen(port, function () {
-    console.log("Started application on port %d", port)
+    console.log(`Started application on port ${port}`);
 });
