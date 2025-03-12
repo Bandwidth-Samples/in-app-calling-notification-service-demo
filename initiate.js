@@ -5,7 +5,7 @@ const firebase = require('firebase-admin');
  * Obtain it from https://firebase.google.com/docs/admin/setup#initialize_the_sdk_in_non-google_environments
  * by create a new web project and follow the straightforward instructions provided in the link above.
  */
-const serviceAccount = require('./firebase-admin-auth.json');
+const serviceAccount = require('./admin-service.json');
 const bxml = require('bandwidth-sdk');
 firebase.initializeApp({ credential: firebase.credential.cert(serviceAccount) });
 
